@@ -15,10 +15,10 @@ class Test():
         # ht.showLines(save=False)
         # ht.showParameters(save=True)
 
-    def assignment2():
+    def assignment2(self):
         pass
 
-    def assignment3():
+    def assignment3(self):
         pass
 
 if __name__ == "__main__":

@@ -12,14 +12,12 @@ class Test():
             image = imread(image_path)
         ht = HoughTransform(image)
         ht.showSpace(save=True)
-        # ht.showLines(save=False)
-        # ht.showParameters(save=True)
+        ht.showLines(save=False)
+        ht.showParameters(save=True)
 
     def assignment2(self):
         pass
 
-    def assignment3(self):
-        pass
 
 if __name__ == "__main__":
 
@@ -29,8 +27,6 @@ if __name__ == "__main__":
 
     test = Test()
     if args.assignment == 1:
-        image = np.zeros((100, 100))
-        idx = np.arange(25, 75)
-        image[idx[::-1], idx] = 255
-        image[idx, idx] = 255
-        test.assignment1(image)
+        test.assignment1()
+    elif args.assignment == 2:
+        test.assignment2()

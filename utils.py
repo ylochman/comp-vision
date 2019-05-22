@@ -37,6 +37,14 @@ def gaussian_kernel(kernel_size=5, sigma=3, pdf=True, channels=None):
         kern2d = np.stack([kern2d] * channels, 3)
     return kern2d
 
+def Sobel_kernel(direction):
+    """
+    Args:
+        direction = 'x' or 'y'
+    """
+    kernel = np.outer(np.array([1, 2, 1]), np.array([-1, 0, 1]))
+    return kernel if direction == 'x' else kernel.T
+
 def conv2D(img, kernel, normalize=True):
     """ Returns a 2D convolution (image * kernel) result
     Args:
@@ -57,7 +65,7 @@ def conv2D(img, kernel, normalize=True):
         kernel = kernel[np.newaxis,:,:,np.newaxis]
     assert img.ndim == 3 and kernel.ndim == 4
     if normalize:
-        kernel = kernel / kernel.sum(axis=(1,2,3))
+        kernel = kernel / (kernel.sum(axis=(1,2,3)) + 1e-5)
     H, W, C = img.shape
     new_C, H_k, W_k, C_ = kernel.shape
     assert C == C_
@@ -69,3 +77,11 @@ def conv2D(img, kernel, normalize=True):
                 convolved_[i, j] = np.sum(img[i:i+H_k, j:j+W_k, :] * kernel_)
     convolved = np.stack(convolved, axis=2)
     return convolved if channels else convolved.squeeze()
+
+def normalize_minmax(image, minvalue=0, maxvalue=255, uint=False):
+    image_norm = (image - image.min()) / (image.max() - image.min())
+    res = image_norm * (maxvalue - minvalue) + minvalue
+    return res if not uint else np.round(res).astype(np.uint8)
+
+def threshold(image, t):
+    return (image > t).astype(np.uint8)

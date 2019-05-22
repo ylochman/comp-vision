@@ -1,19 +1,36 @@
 import numpy as np
 from matplotlib import pyplot as plt
-from utils import gaussian_kernel, conv2D
+from utils import gaussian_kernel, Sobel_kernel, conv2D, normalize_minmax, threshold
 
-class CannyEdge():
+class Canny():
     def __init__(self, image):
         self.image_orig = image
         self.image = image.mean(2) if image.ndim == 3 else image
-        
-    def getEdges(self):
+        self.image = normalize_minmax(self.image)
+
+    def getEdges(self, denoise_kernel=5, denoise_sigma=1):
+        # smooth
+        g_kernel = gaussian_kernel(kernel_size=denoise_kernel,
+                                   sigma=denoise_sigma,
+                                   pdf=True, channels=None)
+        padding = denoise_kernel // 2
+        image_padded = np.pad(self.image, [(padding, padding)]*2, 'reflect')
+        self.denoised = normalize_minmax(conv2D(image_padded, g_kernel))
+
+        # get gradient
+        denoised_padded = np.pad(self.denoised, [(1, 1)]*2, 'reflect')
+        self.dx = conv2D(denoised_padded, Sobel_kernel('x'))
+        self.dy = conv2D(denoised_padded, Sobel_kernel('y'))
+        self.gradient_magnitude = np.sqrt(self.dx**2 + self.dy**2)
+        self.gradient_angle = np.arctan2(self.dy, self.dx)
+        self.edges = threshold(normalize_minmax(self.gradient_magnitude), 150)
+        return self.edges
 
 class HoughTransform():
     """
-    Hough space: I(dist, theta) \in Z
-       dist: from -max_distance // 2 to max_distance // 2
-       theta: from -90 to 89
+    Hough space: I(\rho, \theta): D \times T \to Z^{+}
+       D = [-max_distance // 2; max_distance // 2] \cap Z
+       T = [-90; 89] \cap Z
     """
     def __init__(self, image, theta_density=180):
         self.image_orig = image

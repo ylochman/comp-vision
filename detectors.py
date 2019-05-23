@@ -12,7 +12,7 @@ class Canny():
         self.image = normalize_minmax(self.image)
 
     def getEdges(self, denoise_kernel=5, denoise_sigma=1, t=150,
-                 show=False, save=False):
+                 show=False, save=None):
         """
         Args:
             denoise_kernel -- gaussian kernel size for denoising
@@ -44,6 +44,14 @@ class Canny():
             imsave(self.edges, save, filename='edges.jpg', cmap='gray')
         return self.edges
 
+    def showSteps(self):
+        imshow(self.image, 'gray', (1,6,1))
+        imshow(self.denoised, 'gray', (1,6,2))
+        imshow(normalize_minmax(self.dx), 'gray', (1,6,3))
+        imshow(normalize_minmax(self.dy), 'gray', (1,6,4))
+        imshow(normalize_minmax(self.gradient_magnitude), 'gray', (1,6,5))
+        imshow(normalize_minmax(self.edges), 'gray', (1,6,6))
+        plt.show()
 
 class HoughTransform():
     """

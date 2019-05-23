@@ -13,7 +13,11 @@ class Test():
         ht = HoughTransform(image)
         ht.getSpace(show=False, save=savedir);
         ht.getLines(N, show=False, save=savedir);
-
+        np.savetxt(os.path.join(savedir, "lines_{}.txt".format(N)),
+                   np.array(ht.lines).T)
+        print("Lines (rho, theta):")
+        print(np.array(ht.lines).T)
+        
     def assignment2(self):
         pass
 
@@ -24,11 +28,13 @@ if __name__ == "__main__":
     parser.add_argument("-A", "--assignment",
                         help="# of the assigment",
                         type=int, required=True)
+    parser.add_argument("-N", help="number of lines (for the assignment 1)",
+                        type=int, required=True)
     args = parser.parse_args()
 
     test = Test()
     if args.assignment == 1:
         image_path = "./ucu-cv-code/res/marker_cut_rgb_512.png"
-        test.assignment1(image_path, N=20)
+        test.assignment1(image_path, args.N)
     elif args.assignment == 2:
         test.assignment2()

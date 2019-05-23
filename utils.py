@@ -1,3 +1,4 @@
+import os
 import numpy as np
 from matplotlib import pyplot as plt
 import cv2
@@ -12,6 +13,11 @@ def imshow(img, cmap=None, sub=None):
     plt.title(img.shape)
     plt.imshow(img, cmap=cmap)
     plt.axis('off')
+
+def imsave(image, path, filename, cmap=None):
+    if not os.path.exists(path):
+        os.makedirs(path)
+    plt.imsave(os.path.join(path, filename), image, cmap=cmap)
 
 def gaussian_kernel(kernel_size=5, sigma=3, pdf=True, channels=None):
     """Returns a 2D Gaussian kernel.

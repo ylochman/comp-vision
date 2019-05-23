@@ -1,9 +1,8 @@
-import os
 import numpy as np
 from matplotlib import pyplot as plt
 from skimage.feature import peak_local_max
 from utils import gaussian_kernel, Sobel_kernel, conv2D
-from utils import normalize_minmax, threshold, imshow
+from utils import normalize_minmax, threshold, imshow, imsave
 from cv2 import line as cv2_line
 
 class Canny():
@@ -12,7 +11,8 @@ class Canny():
         self.image = image.mean(2) if image.ndim == 3 else image
         self.image = normalize_minmax(self.image)
 
-    def getEdges(self, denoise_kernel=5, denoise_sigma=1, t=150):
+    def getEdges(self, denoise_kernel=5, denoise_sigma=1, t=150,
+                 show=False, save=False):
         """
         Args:
             denoise_kernel -- gaussian kernel size for denoising
@@ -36,22 +36,28 @@ class Canny():
 
         # threshold
         self.edges = threshold(normalize_minmax(self.gradient_magnitude), t)
+
+        if show:
+            imshow(self.edges)
+            plt.show()
+        if save is not None:
+            imsave(self.edges, save, filename='edges.jpg', cmap='gray')
         return self.edges
 
 
 class HoughTransform():
     """
     Args:
-        image -- 
-        theta_density -- 
+        image -- image
+        theta_density -- number of angles (density)
     """
     def __init__(self, image, theta_density=180):
         self.image_orig = image
-        self.image = Canny(image).getEdges()
-        self.imgsize = np.array(self.image.shape)
+        self.imgsize = np.array(self.image_orig.shape[:2])
         self.d = 2 * np.ceil(np.sqrt(np.sum(self.imgsize**2))).astype(np.int)
         self.offset = self.d // 2
         self.t = theta_density
+        self.edges = None
         self.image_hough_space = None
         self.lines = None
     
@@ -62,12 +68,13 @@ class HoughTransform():
             $T = [-90; 89] \cap Z$
             where $d$ is the maximum distance
         """
+        self.edges = Canny(self.image_orig).getEdges(save=save)
         if self.image_hough_space is None:
             self._getSpace();
         if show:
             self._showSpace(normalize_minmax(self.image_hough_space))
         if save is not None:
-            self._save(normalize_minmax(self.image_hough_space), save, filename='hough_space.jpg', cmap='gray')
+            imsave(normalize_minmax(self.image_hough_space), save, filename='hough_space.jpg', cmap='gray')
         return self.image_hough_space
 
     def _getSpace(self):
@@ -77,7 +84,7 @@ class HoughTransform():
         cthetas = np.cos(self.thetas).reshape(1,-1)
         sthetas = np.sin(self.thetas).reshape(1,-1)
 
-        y_idxs, x_idxs = np.nonzero(self.image)
+        y_idxs, x_idxs = np.nonzero(self.edges)
         y_idxs, x_idxs = y_idxs.reshape(-1,1), x_idxs.reshape(-1,1)
         rho_indices = x_idxs * cthetas + y_idxs * sthetas
         rho_indices = np.round(rho_indices).astype(np.int) + self.offset
@@ -113,6 +120,9 @@ class HoughTransform():
             where $\theta_i$ is in radians, 
         Args:
             N -- number of lines
+            min_distance -- peaks are separated by at least this value
+            threshold_abs -- minimum intensity of peaks
+            threshold_rel -- minimum relative to maximum intensity of peaks
         """
         self._getLines(N, min_distance, threshold_abs, threshold_rel);
         if show or save is not None:
@@ -122,7 +132,7 @@ class HoughTransform():
                 imshow(self.image_lines)
                 plt.show()
             if save is not None:
-                self._save(self.image_lines, save, filename='lines.jpg')
+                imsave(self.image_lines, save, filename='lines_{}.jpg'.format(N))
         return self.lines
 
     def _getLines(self, N=100, min_distance=20,
@@ -153,11 +163,6 @@ class HoughTransform():
             cv2_line(image_lines, (x[0],y[0]), (x[1],y[1]),
                  color=(255,0,0), thickness=2)
         return image_lines
-
-    def _save(self, image, path, filename, cmap=None):
-        if not os.path.exists(path):
-            os.makedirs(path)
-        plt.imsave(os.path.join(path, filename), image, cmap=cmap)
 
 class FAST():
     def __init__(self, image):

@@ -1,3 +1,6 @@
 [submodule "ucu-cv-code"]
 	path = ucu-cv-code
 	url = https://github.com/felistrs/ucu-cv-code.git
+[submodule "ComputerVisionCourse"]
+	path = ComputerVisionCourse
+	url = https://github.com/mdavydov/ComputerVisionCourse.git

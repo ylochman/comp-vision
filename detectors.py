@@ -1,11 +1,15 @@
 import numpy as np
 from matplotlib import pyplot as plt
 from skimage.feature import peak_local_max
-from utils import gaussian_kernel, Sobel_kernel, conv2D
+from utils import gaussian_blur, Sobel_kernel, conv2D
 from utils import normalize_minmax, threshold, imshow, imsave
 from cv2 import line as cv2_line
+from cv2 import circle as cv2_circle
+
 
 class Canny():
+    """Canny algorithm for edge detection
+    """
     def __init__(self, image):
         self.image_orig = image
         self.image = image.mean(2) if image.ndim == 3 else image
@@ -20,12 +24,7 @@ class Canny():
             t -- threshold
         """
         # smooth
-        g_kernel = gaussian_kernel(kernel_size=denoise_kernel,
-                                   sigma=denoise_sigma,
-                                   pdf=True, channels=None)
-        padding = denoise_kernel // 2
-        image_padded = np.pad(self.image, [(padding, padding)]*2, 'reflect')
-        self.denoised = normalize_minmax(conv2D(image_padded, g_kernel))
+        self.denoised = gaussian_blur(self.image, denoise_kernel, denoise_sigma)
 
         # get gradient
         denoised_padded = np.pad(self.denoised, [(1, 1)]*2, 'reflect')
@@ -53,8 +52,9 @@ class Canny():
         imshow(normalize_minmax(self.edges), 'gray', (1,6,6))
         plt.show()
 
+
 class HoughTransform():
-    """
+    """Hough transform for line detection
     Args:
         image -- image
         theta_density -- number of angles (density)
@@ -71,18 +71,19 @@ class HoughTransform():
     
     def getSpace(self, show=False, save=None):
         """Returns image representation in Hough space:
-            $I(\rho, \theta): D \times T \to Z^{+}$
-            $D = [- d // 2; d// 2] \cap Z$
-            $T = [-90; 89] \cap Z$
+            I(rho, theta): D x T -> Z^{+}
+            D = [- d // 2; d // 2] intersect Z
+            T = [-90; 89] intersect Z
             where $d$ is the maximum distance
         """
         self.edges = Canny(self.image_orig).getEdges(save=save)
         if self.image_hough_space is None:
-            self._getSpace();
+            self._getSpace()
         if show:
             self._showSpace(normalize_minmax(self.image_hough_space))
         if save is not None:
-            imsave(normalize_minmax(self.image_hough_space), save, filename='hough_space.jpg', cmap='gray')
+            imsave(normalize_minmax(self.image_hough_space), save,
+                                    filename='hough_space.jpg', cmap='gray')
         return self.image_hough_space
 
     def _getSpace(self):
@@ -124,15 +125,15 @@ class HoughTransform():
                  threshold_abs=0, threshold_rel=0.25,
                  show=False, save=None):
         """Returns lines in format:
-            $[(\rho_1, \theta_1), \dots, (\rho_N, \theta_N)]$
-            where $\theta_i$ is in radians, 
+            [(rho_1, theta_1), ..., (rho_N, theta_N)]
+            where theta_i is in radians, 
         Args:
             N -- number of lines
             min_distance -- peaks are separated by at least this value
             threshold_abs -- minimum intensity of peaks
             threshold_rel -- minimum relative to maximum intensity of peaks
         """
-        self._getLines(N, min_distance, threshold_abs, threshold_rel);
+        self._getLines(N, min_distance, threshold_abs, threshold_rel)
         if show or save is not None:
             rho, theta = self.lines
             self.image_lines = self._drawLines(self.image_orig, rho, theta)
@@ -172,7 +173,139 @@ class HoughTransform():
                  color=(255,0,0), thickness=2)
         return image_lines
 
-class FAST():
-    def __init__(self, image):
-        self.image = image
 
+class FAST():
+    """Features from Accelerated Segment Test for corner detection
+    """
+    def __init__(self, image, smooth=True, denoise_kernel=3, denoise_sigma=1):
+        self.image_orig = image
+        self.image = image.mean(2) if image.ndim == 3 else image
+        if smooth:
+            self.image = gaussian_blur(self.image,
+                                       denoise_kernel=denoise_kernel,
+                                       denoise_sigma=denoise_sigma)
+        self.all_keypoints = None
+
+    def getKeypoints(self, threshold=1, n=12,
+                     recalculate_tentative=False,
+                     min_distance=10, threshold_rel=0.2,
+                     show=False, save=None):
+        if recalculate_tentative or self.all_keypoints == None:
+            self._getAllKeypoints(threshold, n)
+        self._NMS(min_distance, threshold_rel)
+        self._drawKeypoints(self.keypoints)
+        if show:
+            imshow(self.heatmap, sub=(1,2,1))
+            imshow(self.image_with_keypoints, sub=(1,2,2))
+            plt.show()
+        if save is not None:
+            imsave(self.heatmap, save, filename='FAST_heatmap.jpg', cmap='gray')
+            imsave(self.image_with_keypoints, save, filename='FAST_keypoints.jpg')
+        return self.keypoints
+
+    def _getAllKeypoints(self, threshold=30, n=12):
+        H, W = self.image.shape
+        circle_ind = np.array([[ 0, -3],
+                            [-1, -3],
+                            [-2, -2],
+                            [-3, -1],
+                            [-3,  0],
+                            [-3,  1],
+                            [-2,  2],
+                            [-1,  3]])
+        circle_ind = np.vstack([circle_ind, -circle_ind]).T
+        self.all_keypoints = []
+        self.all_values = []
+        # if high_speed:
+        #     speed_circle_ind = np.array([[ 0, -3], [-3,  0], [ 0, 3], [3,  0]]).T
+        #     for y in range(3, H-3):
+        #         for x in range(3, W-3):
+        #             lower = image[y,x] - threshold
+        #             upper = image[y,x] + threshold
+        #             speed_observed_ind = speed_circle_ind + np.array([[y],[x]])
+        #             speed_observed = image[tuple(speed_observed_ind)]
+        #             speed_observed_labels = np.array(list(map(\
+        #                     lambda x: 0 if x < lower else
+        #                               2 if x > upper else 1,
+        #                           image[speed_observed_ind[0], speed_observed_ind[1]])))
+        #             first_test = speed_observed_labels[[0,2]].sum()
+        #             if first_test == 0:
+        #                 if speed_observed_labels[1] == 0 or speed_observed_labels[3] == 0:
+        #                     self.all_keypoints.append([y,x])
+        #                     observed_ind = circle_ind + np.array([[y],[x]])
+        #                     observed = image[tuple(observed_ind)]
+        #                     self.all_values.append((np.abs(image[y,x] - observed)).sum())
+        #             elif first_test == 4:
+        #                 if speed_observed_labels[1] == 2 or speed_observed_labels[3] == 2:
+        #                     self.all_keypoints.append([y,x])
+        #                     observed_ind = circle_ind + np.array([[y],[x]])
+        #                     observed = image[tuple(observed_ind)]
+        #                     self.all_values.append((np.abs(image[y,x] - observed)).sum())
+        # else:
+        for y in range(3, H-3):
+            for x in range(3, W-3):
+                lower = self.image[y,x] - threshold
+                upper = self.image[y,x] + threshold
+                observed_ind = circle_ind + np.array([[y],[x]])
+                observed = self.image[tuple(observed_ind)]
+                if np.sum(observed > upper) >= n or np.sum(observed < lower) >= n:
+                    observed_labels = list(map(\
+                        lambda x: 0 if x < lower else 2 if x > upper else 1,
+                            self.image[observed_ind[0], observed_ind[1]]))
+                    if self._longest_path(observed_labels) >= n:
+                        self.all_keypoints.append([y,x])
+                        self.all_values.append((np.abs(self.image[y,x] - observed)).sum())
+
+    def _NMS(self, min_distance=5, threshold_rel=0.15):
+        self.heatmap = np.zeros_like(self.image)
+        self.heatmap[tuple(np.array(self.all_keypoints).T)] = self.all_values
+        self.keypoints = peak_local_max(self.heatmap,
+                                        min_distance=min_distance,
+                                        threshold_rel=threshold_rel)
+                
+    def _drawKeypoints(self, keypoints):
+        self.image_with_keypoints = self.image_orig.copy()
+        for y,x in keypoints:
+            self.image_with_keypoints = cv2_circle(self.image_with_keypoints, (x, y), 1, (255,0,0), 2)
+        return self.image_with_keypoints
+
+    def _longest_path(self, A):
+        i = 0
+        while A[i] == 1:
+            i += 1
+        j = 15
+        while A[j] == 1:
+            j -= 1
+        max_len = 1
+        if i == 0 and A[i] == A[j]:
+            start_len = 1
+            end_len = 1
+            go_on_start = True
+            go_on_end = True
+            while (go_on_start or go_on_end) and i+1 < j-1:
+                if A[i+1] == A[i]:
+                    start_len += 1
+                    i += 1
+                else:
+                    go_on_start = False
+                if A[j-1] == A[j]:
+                    end_len += 1
+                    j -= 1
+                else:
+                    go_on_end = False
+            max_len = start_len + end_len
+        if i<j and (i > 0 or j < 15 or A[i] != A[j]):
+            i_len = 1
+            i += 1
+            while i < j:
+                if A[i] == A[i-1]:
+                    i_len += 1
+                    i += 1
+                else:
+                    if i_len > max_len:
+                        max_len = i_len
+                    while A[i] == 1:
+                        i += 1
+                    i += 1
+                    i_len = 1
+        return max_len

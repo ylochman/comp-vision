@@ -3,6 +3,7 @@ import numpy as np
 from matplotlib import pyplot as plt
 import cv2
 from scipy.stats import norm
+from utils_conv2d import conv2d
 
 def imread(imgpath):
     return cv2.cvtColor(cv2.imread(imgpath), cv2.COLOR_BGR2RGB)
@@ -18,38 +19,6 @@ def imsave(image, path, filename, cmap=None):
     if not os.path.exists(path):
         os.makedirs(path)
     plt.imsave(os.path.join(path, filename), image, cmap=cmap)
-
-def gaussian_kernel(kernel_size=5, sigma=3, pdf=True, channels=None):
-    """Returns a 2D Gaussian kernel.
-    Args:
-        kernel_size -- 
-        sigma -- 
-        pdf -- whether to calculate PDF (if True) or difference of CDF (if False)
-        channels -- number of channels to repeat kernel,
-                    can be used for convolving with RGB images (then channels=3)
-    """
-    if pdf:
-        lim = kernel_size//2 - ((kernel_size - 1) % 2) / 2
-        x = np.linspace(-lim, lim, kernel_size)
-        kern1d = norm.pdf(x, scale=sigma)
-    else:
-        lim = kernel_size//2 + (kernel_size % 2) / 2
-        x = np.linspace(-lim, lim, kernel_size+1)
-        kern1d = np.diff(norm.cdf(x, scale=sigma))
-    kern2d = np.outer(kern1d, kern1d)
-    kern2d = kern2d / kern2d.sum()
-    if channels is not None:
-        kern2d = np.stack([kern2d] * channels, 0)
-        kern2d = np.stack([kern2d] * channels, 3)
-    return kern2d
-
-def Sobel_kernel(direction):
-    """
-    Args:
-        direction = 'x' or 'y'
-    """
-    kernel = np.outer(np.array([1, 2, 1]), np.array([-1, 0, 1]))
-    return kernel if direction == 'x' else kernel.T
 
 def conv2D(img, kernel, normalize=True):
     """ Returns a 2D convolution (image * kernel) result
@@ -84,10 +53,54 @@ def conv2D(img, kernel, normalize=True):
     convolved = np.stack(convolved, axis=2)
     return convolved if channels else convolved.squeeze()
 
+
+def gaussian_kernel(kernel_size=5, sigma=3, pdf=True, channels=None):
+    """Returns a 2D Gaussian kernel.
+    Args:
+        kernel_size -- 
+        sigma -- 
+        pdf -- whether to calculate PDF (if True) or difference of CDF (if False)
+        channels -- number of channels to repeat kernel,
+                    can be used for convolving with RGB images (then channels=3)
+    """
+    if pdf:
+        lim = kernel_size//2 - ((kernel_size - 1) % 2) / 2
+        x = np.linspace(-lim, lim, kernel_size)
+        kern1d = norm.pdf(x, scale=sigma)
+    else:
+        lim = kernel_size//2 + (kernel_size % 2) / 2
+        x = np.linspace(-lim, lim, kernel_size+1)
+        kern1d = np.diff(norm.cdf(x, scale=sigma))
+    kern2d = np.outer(kern1d, kern1d)
+    kern2d = kern2d / kern2d.sum()
+    if channels is not None:
+        kern2d = np.stack([kern2d] * channels, 0)
+        kern2d = np.stack([kern2d] * channels, 3)
+    return kern2d
+
+def gaussian_blur(image, denoise_kernel=5, denoise_sigma=1):
+    g_kernel = gaussian_kernel(kernel_size=denoise_kernel,
+                               sigma=denoise_sigma,
+                               pdf=True, channels=None)
+    padding = denoise_kernel // 2
+    image_padded = np.pad(image, [(padding, padding)]*2, 'reflect')
+    return normalize_minmax(conv2D(image_padded, g_kernel))
+
+
+def Sobel_kernel(direction):
+    """
+    Args:
+        direction = 'x' or 'y'
+    """
+    kernel = np.outer(np.array([1, 2, 1]), np.array([-1, 0, 1]))
+    return kernel if direction == 'x' else kernel.T
+
+
 def normalize_minmax(image, minvalue=0, maxvalue=255, uint=False):
     image_norm = (image - image.min()) / (image.max() - image.min())
     res = image_norm * (maxvalue - minvalue) + minvalue
     return res if not uint else np.round(res).astype(np.uint8)
+
 
 def threshold(image, t):
     return (image > t).astype(np.uint8)

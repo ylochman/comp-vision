@@ -15,7 +15,7 @@ class Canny():
         self.image = image.mean(2) if image.ndim == 3 else image
         self.image = normalize_minmax(self.image)
 
-    def getEdges(self, denoise_kernel=5, denoise_sigma=1, t=150,
+    def getEdges(self, denoise_kernel=None, denoise_sigma=1, t=150,
                  show=False, save=None):
         """
         Args:
@@ -177,7 +177,7 @@ class HoughTransform():
 class FAST():
     """Features from Accelerated Segment Test for corner detection
     """
-    def __init__(self, image, smooth=True, denoise_kernel=3, denoise_sigma=1):
+    def __init__(self, image, smooth=True, denoise_kernel=None, denoise_sigma=1):
         self.image_orig = image
         self.image = image.mean(2) if image.ndim == 3 else image
         if smooth:

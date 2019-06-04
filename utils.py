@@ -81,7 +81,10 @@ def gaussian_kernel(kernel_size=5, sigma=3, pdf=True, channels=None):
         kern2d = np.stack([kern2d] * channels, 3)
     return kern2d
 
-def gaussian_blur(image, denoise_kernel=5, denoise_sigma=1):
+def gaussian_blur(image, denoise_kernel=None, denoise_sigma=1):
+    if denoise_kernel is None:
+        denoise_kernel = int(np.ceil(denoise_sigma * 3) // 2 * 2 + 1)
+
     g_kernel = gaussian_kernel(kernel_size=denoise_kernel,
                                sigma=denoise_sigma,
                                pdf=True, channels=None)

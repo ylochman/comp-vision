@@ -7,45 +7,43 @@ from descriptors import BRIEF
 import cv2
 
 #################### Additional functions for Assignment 2 ############################
-# See gaussian_blur in utils.py
-# For find_keypoints_candidates see FAST in detectors
-# For compute_descriptors see BRIEF in descriptors
+# 1. See gaussian_blur in utils.py
+# 2. For find_keypoints_candidates see FAST in detectors
+# 3. For compute_descriptors see BRIEF in descriptors
+# 4. detect_keypoints_and_calculate_descriptors is below:
 
-# function for keypoints and descriptors calculation
-def detect_keypoints_and_calculate_descriptors(img):
+def detect_keypoints_and_calculate_descriptors(img, brief):
     # img - numpy 2d array (grayscale image)
-    img_blur = gaussian_blur(img, 31, 3.0)
+    img_blur = gaussian_blur(img, 11, 2.0)
 
     # keypoints
-    kp_arr = FAST(img_blur, denoise_sigma=None).getKeypoints()
-    # kp_arr is array of 2d coordinates-tuples, example:
-    # [(x0, y0), (x1, y1), ...]
-    # xN, yN - integers
+    kp_arr = FAST(img_blur, denoise_sigma=None).getKeypoints(threshold=1,
+                                                            min_distance=10,
+                                                            threshold_rel=0.15)
 
-    # descriptors
-    descr_arr = BRIEF(img_blur, denoise_sigma=None).describe(kp_arr).astype(np.float)
-    print(descr_arr)
-    # cv_descr_arr is array of descriptors (arrays), example:
-    # [[v00, v01, v02, ...], [v10, v11, v12, ...], ...]
-    # vNM - floats
-
+    # keypoints & descriptors
+    kp_arr, descr_arr = brief.describe(img_blur, kp_arr, denoise_sigma=None)
+    kp_arr = list(map(lambda pt: (pt[1], pt[0]), kp_arr))
     return kp_arr, descr_arr
 
+# 5. utility function from ucu-cv-code
 def match_brute_force(descr_arr0, descr_arr1):
     bf = cv2.BFMatcher()
     # return 2 matches for keypoint
     matches = bf.knnMatch(descr_arr0, descr_arr1, k=2)
     matches_arr = []
-    for match_a, match_b in matches:
-        # mark match good if 2nd match has bigger distance
-        # (filtering similar keypoints)
-        if match_a.distance < 0.75 * match_b.distance:
-            matches_arr.append((
-                match_a.queryIdx,
-                match_a.trainIdx
-            ))
+    if len(matches) > 0:
+        for match_a, match_b in matches:
+            # mark match good if 2nd match has bigger distance
+            # (filtering similar keypoints)
+            if match_a.distance < 0.75 * match_b.distance:
+                matches_arr.append((
+                    match_a.queryIdx,
+                    match_a.trainIdx
+                ))
     return matches_arr
 
+##################################   Main testing module   ##################################
 class Test():
     def assignment1(self, image_path, N=5):
         image = imread(image_path)
@@ -60,6 +58,7 @@ class Test():
         print(np.array(ht.lines).T)
         
     def assignment2(self, img_in_path):
+        brief = BRIEF(bin_descriptor_size=512, patch_size=49)
         for test_name in ['translation_', 'translation_noise_', 'rotation_2_', 'rotation_5_']:
             for frame_idx in range(9):
                 # read two frames
@@ -73,8 +72,8 @@ class Test():
                 cols = img0.shape[1]
 
                 # detect keypoints and calculate descriptors
-                kp0, descr0 = detect_keypoints_and_calculate_descriptors(img0.copy())
-                kp1, descr1 = detect_keypoints_and_calculate_descriptors(img1.copy())
+                kp0, descr0 = detect_keypoints_and_calculate_descriptors(img0.copy(), brief)
+                kp1, descr1 = detect_keypoints_and_calculate_descriptors(img1.copy(), brief)
 
                 # match
                 match_arr = match_brute_force(descr0, descr1)

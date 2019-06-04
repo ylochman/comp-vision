@@ -232,10 +232,13 @@ class FAST():
 
     def _NMS(self, min_distance=5, threshold_rel=0.15):
         self.heatmap = np.zeros_like(self.image)
-        self.heatmap[tuple(np.array(self.all_keypoints).T)] = self.all_values
-        self.keypoints = peak_local_max(self.heatmap,
-                                        min_distance=min_distance,
-                                        threshold_rel=threshold_rel)
+        if len(self.all_keypoints) == 0:
+            self.keypoints = []
+        else:
+            self.heatmap[tuple(np.array(self.all_keypoints).T)] = self.all_values
+            self.keypoints = peak_local_max(self.heatmap,
+                                            min_distance=min_distance,
+                                            threshold_rel=threshold_rel)
                 
     def _drawKeypoints(self, keypoints):
         self.image_with_keypoints = self.image_orig.copy()

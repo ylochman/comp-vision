@@ -206,42 +206,16 @@ class FAST():
     def _getAllKeypoints(self, threshold=30, n=12):
         H, W = self.image.shape
         circle_ind = np.array([[ 0, -3],
-                            [-1, -3],
-                            [-2, -2],
-                            [-3, -1],
-                            [-3,  0],
-                            [-3,  1],
-                            [-2,  2],
-                            [-1,  3]])
+                               [-1, -3],
+                               [-2, -2],
+                               [-3, -1],
+                               [-3,  0],
+                               [-3,  1],
+                               [-2,  2],
+                               [-1,  3]])
         circle_ind = np.vstack([circle_ind, -circle_ind]).T
         self.all_keypoints = []
         self.all_values = []
-        # if high_speed:
-        #     speed_circle_ind = np.array([[ 0, -3], [-3,  0], [ 0, 3], [3,  0]]).T
-        #     for y in range(3, H-3):
-        #         for x in range(3, W-3):
-        #             lower = image[y,x] - threshold
-        #             upper = image[y,x] + threshold
-        #             speed_observed_ind = speed_circle_ind + np.array([[y],[x]])
-        #             speed_observed = image[tuple(speed_observed_ind)]
-        #             speed_observed_labels = np.array(list(map(\
-        #                     lambda x: 0 if x < lower else
-        #                               2 if x > upper else 1,
-        #                           image[speed_observed_ind[0], speed_observed_ind[1]])))
-        #             first_test = speed_observed_labels[[0,2]].sum()
-        #             if first_test == 0:
-        #                 if speed_observed_labels[1] == 0 or speed_observed_labels[3] == 0:
-        #                     self.all_keypoints.append([y,x])
-        #                     observed_ind = circle_ind + np.array([[y],[x]])
-        #                     observed = image[tuple(observed_ind)]
-        #                     self.all_values.append((np.abs(image[y,x] - observed)).sum())
-        #             elif first_test == 4:
-        #                 if speed_observed_labels[1] == 2 or speed_observed_labels[3] == 2:
-        #                     self.all_keypoints.append([y,x])
-        #                     observed_ind = circle_ind + np.array([[y],[x]])
-        #                     observed = image[tuple(observed_ind)]
-        #                     self.all_values.append((np.abs(image[y,x] - observed)).sum())
-        # else:
         for y in range(3, H-3):
             for x in range(3, W-3):
                 lower = self.image[y,x] - threshold

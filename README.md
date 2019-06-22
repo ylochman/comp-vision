@@ -14,4 +14,7 @@ Implementations are in:
 * `detectors.py`
 * `descriptors.py`
 
-## Module 2
+## Image Segmentation and Correspondence Problems (Module 2)
+See `Segmentation` and `Correspondence` directories
+
+## Object Tracking and Search (Module 3)

@@ -1,0 +1,5 @@
+opencv-python==4.1.0.25
+scikit-image==0.14.2
+numpy==1.16.4
+matplotlib==3.0.3
+scipy==1.2.1

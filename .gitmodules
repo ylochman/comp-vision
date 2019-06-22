@@ -1,6 +1,6 @@
 [submodule "ucu-cv-code"]
-	path = materials-module1
+	path = Feature-Detection/materials-module1
 	url = https://github.com/felistrs/ucu-cv-code.git
 [submodule "ComputerVisionCourse"]
-	path = materials-module2
+	path = Segmentation/materials-module2
 	url = https://github.com/mdavydov/ComputerVisionCourse.git

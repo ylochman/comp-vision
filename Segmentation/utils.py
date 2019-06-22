@@ -119,8 +119,6 @@ def matrix_info(matrix):
     print('Min: {}'.format(matrix.min()))
     print('Max: {}'.format(matrix.max()))
     
-def save(text_result, task, example_id):
-    plt.imsave('res2/{}/{}{}.jpg'.format(*task_dirtree[task], example_id),
+def save(text_result, task, example_id, resdir='res'):
+    plt.imsave('{}/{}/{}{}.jpg'.format(resdir, *task_dirtree[task], example_id),
                text_result, cmap='gray')
-    
-resdir = 'res2'

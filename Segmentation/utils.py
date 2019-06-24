@@ -23,9 +23,9 @@ def imshow(img, cmap='gray', sub=None, title=None):
     if sub is None:
         plt.show()
 
-def save(text_result, task, example_id, resdir='res'):
+def save(text_result, task, example_id, resdir='res', cmap='gray'):
     plt.imsave('{}/{}/{}{}.jpg'.format(resdir, *task_dirtree[task], example_id),
-               text_result, cmap='gray')
+               text_result, cmap=cmap)
 
 def matrix_info(matrix):
     print('Shape: {}'.format(matrix.shape))

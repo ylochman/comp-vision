@@ -7,5 +7,8 @@
 
 See `Find-Transformation.ipynb`
 
-### PatchMatch implementation
- See `PatchMatch-Correspondence.ipynb`
+### PatchMatch algorithm
+
+Testing notebook: `PatchMatch.ipynb`
+
+Implementation is in `PatchMatch.py`.

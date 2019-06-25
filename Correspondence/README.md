@@ -1,9 +1,11 @@
 # Correspondence problems
 
-## Implemented tasks
+### Find transformation matrix from point pairs
 
-1. Find affine transformation matrix from 3 point pairs. See `Find-Transformation.ipynb`
-2. Find projective transformation matrix from 4 point pairs. See `Find-Transformation.ipynb`
-3. PatchMatch algorithm. See `PatchMatch-Correspondence.ipynb`
+- Affine transformation from 3 point pairs.
+- Projective transformation from 4 point pairs. 
 
-<!-- To check everything see `Test-Module2-Day2.ipynb` -->
+See `Find-Transformation.ipynb`
+
+### PatchMatch implementation
+ See `PatchMatch-Correspondence.ipynb`

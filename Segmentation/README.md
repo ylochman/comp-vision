@@ -1,8 +1,8 @@
 # Image segmentation
 
-## Implemented tasks
+To check the solutions see corresponding notebooks.
 
-1. Separate text from background [(results)](./res/text)
+### Separate text from background [(results)](./res/text)
 
 <img style="display: block;" src="./res/text/text1_orig.jpg" width="25%"><img src="./res/text/text1.jpg" width="25%"><img src="./res/text/text2_orig.jpg" width="25%"><img src="./res/text/text2.jpg" width="25%">
 
@@ -10,7 +10,7 @@
 
 <img style="display: block;" src="./res/text/text6_orig.jpg" width="25%"><img src="./res/text/text6.jpg" width="25%"><img src="./res/text/text4_orig.jpg" width="25%"><img src="./res/text/text4.jpg" width="25%">
 
-2. Estimate number of objects [(results)](./res/count)
+### Estimate number of objects [(results)](./res/count)
 
 <img style="display: block;" src="./res/count/count1_orig.jpg" width="25%"><img src="./res/count/count1_watershed_markers.jpg" width="25%"><img src="./res/count/count4_orig.jpg" width="25%"><img src="./res/count/count4_watershed_markers.jpg" width="25%">
 
@@ -24,6 +24,9 @@
 
 <img style="display: block;" src="./res/count/count11_orig.jpg" width="25%"><img src="./res/count/count11_watershed_markers.jpg" width="25%"><img src="./res/count/count12_orig.jpg" width="25%"><img src="./res/count/count12_watershed_markers.jpg" width="25%">
 
-3. Separate object from background [(results)](./res/object)
+### Separate object from background [(results)](./res/object)
+<img style="display: block;" src="./res/object/obj1_orig.jpg" width="25%"><img src="./res/object/obj1.jpg" width="25%"><img src="./res/object/obj2_orig.jpg" width="25%"><img src="./res/object/obj2.jpg" width="25%">
 
-To check the solutions see `Test-Module2-Day1.ipynb`.
+<img style="display: block;" src="./res/object/obj3_orig.jpg" width="25%"><img src="./res/object/obj3.jpg" width="25%"><img src="./res/object/obj4_orig.jpg" width="25%"><img src="./res/object/obj4.jpg" width="25%">
+
+<img style="display: block;" src="./res/object/obj5_orig.jpg" width="25%"><img src="./res/object/obj5.jpg" width="25%"><img src="./res/object/obj6_orig.jpg" width="25%"><img src="./res/object/obj6.jpg" width="25%">

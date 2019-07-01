@@ -3,18 +3,20 @@ from matplotlib import pyplot as plt
 import cv2
 from utils import *
 
-def match_template(image, template, matcher, pad=False, pad_value=0, DEBUG=False):
+def match_template(image, template, matchers, pad=False, pad_value=0, norm_patches=True, DEBUG=False):
     """Computes
     
     Args:
         image: (H, W[, 3]) matrix corresponding to the image
         template: (h, w[, 3]) matrix corresponding to the template patch, where h <= H, w <= W
-        matcher: matcher name: "SSD" (sum of squared differences),
-                               "NCC" (normalized cross correlation) or
-                               "SAD" (sum of absolute differences)
+        matchers: matcher name / list of matchers names. Available matchers:
+                    "SSD" (sum of squared differences),
+                    "CC" (cross correlation),
+                    "SAD" (sum of absolute differences)
         pad: boolean indicating whether to pad image with pad_value constant
                      to get the same size output (default False)
         pad_value: int (default 0)
+        norm_patches: boolean indicating whether to normalize patches (using intensity mean and std)
 
     Returns: matching map of size (H-h+1, W-w+1[, 3]) if pad is False,
                                or (H, W[, 3]) otherwise
@@ -33,22 +35,23 @@ def match_template(image, template, matcher, pad=False, pad_value=0, DEBUG=False
         dW = w - 1
         pad_width = ((dH//2, dH//2+dH%2), (dW//2, dW//2+dW%2), (0,0)) if C == 3 \
                else ((dH//2, dH//2+dH%2), (dW//2, dW//2+dW%2))
-        image = np.pad(image, pad_width, mode='constant', constant_values=pad_value)
+        image = np.pad(image, pad_width, mode="constant", constant_values=pad_value)
         H, W = image.shape[:2]
     H_new, W_new = H-h+1, W-w+1
-    matching_map = np.zeros((H_new, W_new), dtype=np.float)
-    matcher_dict = {"SSD": SSD, "NCC": NCC, "SAD": SAD}
-    assert matcher in matcher_dict.keys()
-    if matcher == "NCC":
-        template = normalize_patch(template)
-    matcher = matcher_dict[matcher]
-    for y in range(H_new):
-        for x in range(W_new):
-            patch = image[y:y+h, x:x+w]
-            match = matcher(patch, template)
-            if DEBUG:
-                imshow(patch, sub=(1,2,1))
-                imshow(template, sub=(1,2,2), title=match)
-                plt.show()
-            matching_map[y,x] = match
-    return matching_map
+    if norm_patches:
+        image_cols = normalize(im2col(image, h, w, False), axis=(2,3)).reshape(H_new, W_new, h * w * C) / np.sqrt(C)
+        template_flat = normalize(template, axis=(0,1)).flatten() / np.sqrt(C)
+    else:
+        image_cols = im2col(image, h, w, True)
+        template_flat = template.flatten()
+    matcher_dict = {"SSD": SSD, "CC": CC, "SAD": SAD}
+    matching_maps = []
+    if isinstance(matchers, str):
+        matchers = [matchers]
+    for matcher in matchers:
+        assert matcher in matcher_dict.keys()
+        matcher_fn = matcher_dict[matcher]
+        print(matcher, matcher_fn)
+        matching_map = matcher_fn(image_cols, template_flat, -1)
+        matching_maps.append(matching_map)
+    return matching_maps

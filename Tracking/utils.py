@@ -37,8 +37,8 @@ def im2col(img, h, w, flatten=True):
         h: int, kernel width
         w: int, kernel height
         flatten: boolean indicating output matrix shape
-    Returns: [h, w[, 3], H_new, W_new] tensor
-          or [h * w [* 3], H_new * W_new] matrix (if flatten is True),
+    Returns: [H_new, W_new, h, w[, 3]] tensor
+          or [H_new, W_new, h * w [* 3]] matrix (if flatten is True),
               where H_new = H-h+1, W_new = W-w+1
     """
     H, W = img.shape[:2]
@@ -48,55 +48,78 @@ def im2col(img, h, w, flatten=True):
     I_y = np.stack([np.arange(H_new)] * W_new, 1)[:,:,np.newaxis,np.newaxis,np.newaxis]
     I_x = np.stack([np.arange(W_new)] * H_new, 0)[:,:,np.newaxis,np.newaxis,np.newaxis]
 
-    i0 = np.stack([np.stack([np.arange(h)] * w, 1)] * C, 2)[np.newaxis,np.newaxis,:,:,:]
-    j0 = np.stack([np.stack([np.arange(w)] * h, 0)] * C, 2)[np.newaxis,np.newaxis,:,:,:]
-    k0 = np.stack([np.stack([np.arange(C)] * w, 0)] * h, 0)[np.newaxis,np.newaxis,:,:,:]
-    if C == 3:
-        return img[i0+I_y,j0+I_x,k0]
-    return img[(i0+I_y)[:,:,:,:,0], (j0+I_x)[:,:,:,:,0]]
+    i = np.stack([np.stack([np.arange(h)] * w, 1)] * C, 2)[np.newaxis,np.newaxis,:,:,:]
+    j = np.stack([np.stack([np.arange(w)] * h, 0)] * C, 2)[np.newaxis,np.newaxis,:,:,:]
+    k = np.stack([np.stack([np.arange(C)] * w, 0)] * h, 0)[np.newaxis,np.newaxis,:,:,:]
+    res = img[I_y + i, I_x + j, k] if C == 3 else img[(I_y + i)[:,:,:,:,0], (I_x + j)[:,:,:,:,0]]
+    if flatten:
+        return res.reshape(H_new, W_new, h * w * C)
+    return res
 
-def normalize_patch(patch):
-    """Intensity normalization of a patch
+def normalize(x, axis=(0,1)):
+    """Intensity normalization of a patch.
     
     Args:
-        patch: (H, W[, 3]) matrix corresponding to the first patch
+        patch: (H, W[, 3]) patch matrix
+        axis: int, tuple or None
     """
-    mean = patch.mean((0,1))
-    std = (np.sum((patch - mean)**2)) ** .5
-    return (patch - mean) / std
+    mean = x.mean(axis, keepdims=True)
+    std = np.sqrt(((x - mean)**2).sum(axis, keepdims=True))
+    return (x - mean) / std
 
-def NCC(patch1, patch2, is_normalized1=False, is_normalized2=True):
-    """Computes the normalized cross correlation of two patches.
+def CC(x, y, axis=-1):
+    """Computes the cross correlation of two elements.
     
     Args:
-        patch1: (H, W[, 3]) matrix corresponding to the first patch
-        patch2: (H, W[, 3]) matrix corresponding to the second patch
-        is_normalized1: boolean indicating whether patch1 is already normalized
-        is_normalized2: boolean indicating whether patch2 is already normalized
+        x: first element of a vector space (or batch of elements)
+            x should have size [[N1...Nk,] M1...Mp]
+                where N1...Nk indicate batch, M1...Mp indicate vector space dimensions
+        y: second element of the vector space
+            y should have size [M1...Mp]
+        axis: int, tuple or None 
+            if int, tuple -- result is summed over it
+            if None -- result is returned without summation
     """
-    assert patch1.shape == patch2.shape, "patch1 and patch2 should have the same shape"
-    if not is_normalized1:
-        patch1 = normalize_patch(patch1)
-    if not is_normalized2:
-        patch2 = normalize_patch(patch2)
-    return np.sum(patch1 * patch2)
+    if axis == -1:
+        assert y.ndim == 1
+        res = (x.astype(float)).dot(y)
+    res = x.astype(float) * y
+    if axis is None:
+        return res
+    return res.sum(axis)
 
-def SSD(patch1, patch2):
-    """Computes the sum of squared differences of two patches.
+def SSD(x, y, axis=-1):
+    """Computes the sum of squared differences of two elements.
     
     Args:
-        patch1: (H, W[, 3]) matrix corresponding to the first patch
-        patch2: (H, W[, 3]) matrix corresponding to the second patch
+        x: first element of a vector space (or batch of elements)
+            x should have size [[N1...Nk,] M1...Mp]
+                where N1...Nk indicate batch, M1...Mp indicate vector space dimensions
+        y: second element of the vector space
+            y should have size [M1...Mp]
+        axis: int, tuple or None 
+            if int, tuple -- result is summed over it
+            if None -- result is returned without summation
     """
-    assert patch1.shape == patch2.shape, "patch1 and patch2 should have the same shape"
-    return np.sum((patch1 - patch2)**2)
+    res = (x.astype(float) - y)**2
+    if axis is None:
+        return res
+    return res.sum(axis)
 
-def SAD(patch1, patch2):
-    """Computes the sum of absolute differences of two patches.
+def SAD(x, y, axis=-1):
+    """Computes the sum of absolute differences of two elements.
     
     Args:
-        patch1: (H, W[, 3]) matrix corresponding to the first patch
-        patch2: (H, W[, 3]) matrix corresponding to the second patch
+        x: first element of a vector space (or batch of elements)
+            x should have size [[N1...Nk,] M1...Mp]
+                where N1...Nk indicate batch, M1...Mp indicate vector space dimensions
+        y: second element of the vector space
+            y should have size [M1...Mp]
+        axis: int, tuple or None 
+            if int, tuple -- result is summed over it
+            if None -- result is returned without summation
     """
-    assert patch1.shape == patch2.shape, "patch1 and patch2 should have the same shape"
-    return np.sum(np.abs(patch1 - patch2))
+    res = np.abs(x.astype(float) - y)
+    if axis is None:
+        return res
+    return res.sum(axis)

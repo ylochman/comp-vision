@@ -51,7 +51,7 @@ def match_template(image, template, matchers, pad=False, pad_value=0, norm_patch
     for matcher in matchers:
         assert matcher in matcher_dict.keys()
         matcher_fn = matcher_dict[matcher]
-        print(matcher, matcher_fn)
+        # print(matcher, matcher_fn)
         matching_map = matcher_fn(image_cols, template_flat, -1)
         matching_maps.append(matching_map)
     return matching_maps

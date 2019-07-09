@@ -17,5 +17,4 @@ See:
 
 * `Image-Retrieval`
 * `Kalman-Filter`
-* `Lucas-Kanade-Tracking`
-* `Mean-Shift`
+* `Tracking`

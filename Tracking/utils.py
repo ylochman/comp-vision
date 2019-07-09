@@ -1,3 +1,4 @@
+import os
 import numpy as np
 from matplotlib import pyplot as plt
 import cv2
@@ -20,6 +21,12 @@ def imshow_with_rect(img, y1, y2, x1, x2, sub=None):
     img_patch = img.copy()
     cv2.rectangle(img_patch, (x1, y1), (x2, y2), (255,0,0))
     imshow(img_patch, sub=sub)
+
+def imsave(image, path, cmap=None):
+    dirpath = os.path.split(path)[0]
+    if not os.path.exists(dirpath):
+        os.makedirs(dirpath)
+    plt.imsave(path, image, cmap=cmap)
 
 def normalize_minmax(image, minvalue=0, maxvalue=255, uint=False, dim=None, eps=1e-30):
     imagemin = image.min(dim, keepdims=True)

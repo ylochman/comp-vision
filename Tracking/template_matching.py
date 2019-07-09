@@ -1,10 +1,11 @@
 import numpy as np
 from matplotlib import pyplot as plt
 import cv2
-from utils import *
+from utils import imread, imshow, imsave
+from utils import normalize, im2col, CC, SSD, SAD
 
-def match_template(image, template, matchers, pad=False, pad_value=0, norm_patches=True, DEBUG=False):
-    """Computes
+def match_template(image, template, matchers, pad=False, pad_value=0, norm_patches=True):
+    """Computes matching map for an image given a template.
     
     Args:
         image: (H, W[, 3]) matrix corresponding to the image
@@ -51,7 +52,77 @@ def match_template(image, template, matchers, pad=False, pad_value=0, norm_patch
     for matcher in matchers:
         assert matcher in matcher_dict.keys()
         matcher_fn = matcher_dict[matcher]
-        # print(matcher, matcher_fn)
         matching_map = matcher_fn(image_cols, template_flat, -1)
         matching_maps.append(matching_map)
     return matching_maps
+
+def locate(image, score_map, w, h, maximum=True, threshold=None):
+    """Finds a match given a score map.
+    
+    Args:
+        image: (H, W[, 3]) matrix corresponding to the image
+        score_map: (H, W) score map
+        w, h: template size
+        maximum: detect maximum (if True) or minmum (if False)
+        threshold: threshold value for score (to get more than one match), relative to maximum
+
+    Returns: loc: (x, y) where x is an array of top-left x coordinates,
+                               y is an array of top-left y coordinates
+             matched: image with matched bboxes drawn
+    """
+    matched = image.copy()
+    if threshold is None:
+        _, _, min_loc, max_loc = cv2.minMaxLoc(score_map)
+        top_left = max_loc if maximum else min_loc
+        bottom_right = (top_left[0] + w, top_left[1] + h)
+        cv2.rectangle(matched, top_left, bottom_right, (255,0,0), 2)
+        loc = tuple([np.array([p]) for p in top_left])
+    else:
+        loc = np.where(score_map >= (threshold * score_map.max()) \
+                       if maximum else \
+                       score_map <= ((1-threshold) * score_map.max()))
+        for pt in zip(*loc[::-1]):
+            cv2.rectangle(matched, pt, (pt[0] + w, pt[1] + h), (255,0,0), 2)
+    return loc, matched
+
+def main(args):
+    """Runs a template matching example"""
+    image = imread('data/{}/image.jpg'.format(args.dirName))
+    template = imread('data/{}/template.jpg'.format(args.dirName))
+
+    if args.resize:
+        image = cv2.resize(image, (0,0), fx=args.resize_factor, fy=args.resize_factor)
+        template = cv2.resize(template, (0,0), fx=args.resize_factor, fy=args.resize_factor)
+    if args.gray:
+        image = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)
+        template = cv2.cvtColor(template, cv2.COLOR_RGB2GRAY)
+
+    H, W = image.shape[:2]
+    h, w = template.shape[:2]
+    C = 3 if image.ndim == 3 else 1
+    H_new, W_new = H-h+1, W-w+1
+
+    matchers = ["CC", "SSD", "SAD"]
+    matchers_names = dict(zip(matchers, ["Cross Correlation",
+                                        "Sum of Squared Differences",
+                                        "Sum of Absolute Differences"]))
+    score_maps = match_template(image, template, matchers, pad=False, norm_patches=True)
+    for score_map, matcher in zip(score_maps, matchers):
+        loc, matched = locate(image, score_map, w, h, maximum=(matcher=="CC"), threshold=None)
+        imsave(score_map, path='res/{}/N{}_score_map.jpg'.format(args.dirName, matcher), cmap='gray')
+        imsave(matched, path='res/{}/N{}_matched.jpg'.format(args.dirName, matcher))
+        if args.show:
+            imshow(score_map, title=matchers_names[matcher], sub=(1,2,1))
+            imshow(matched, title='Matched', sub=(1,2,2))
+            plt.show()
+
+if __name__=="__main__":
+    import argparse
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--dirName", type=str, default="messi", help='path to image and template (default: messi)')
+    parser.add_argument("--resize", action='store_true', default=False, help='resize (default: False)')
+    parser.add_argument("--resize-factor", type=float, default=0.5, help='resize factor (default: 0.5)')
+    parser.add_argument("--gray", action='store_true', default=False, help='convert to gray (default: False)')
+    parser.add_argument("--show", action='store_true', default=False, help='show result (default: False)')
+    args = parser.parse_args()
+    main(args)

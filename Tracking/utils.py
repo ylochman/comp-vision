@@ -1,4 +1,6 @@
 import os
+from copy import deepcopy
+from glob import glob
 import numpy as np
 from matplotlib import pyplot as plt
 import cv2
@@ -16,11 +18,6 @@ def imshow(img, cmap='gray', sub=None, title=None):
     plt.axis('off')
     if sub is None:
         plt.show()
-
-def imshow_with_rect(img, y1, y2, x1, x2, sub=None):
-    img_patch = img.copy()
-    cv2.rectangle(img_patch, (x1, y1), (x2, y2), (255,0,0))
-    imshow(img_patch, sub=sub)
 
 def imsave(image, path, cmap=None):
     dirpath = os.path.split(path)[0]
@@ -143,3 +140,57 @@ def Sobel_kernel(direction):
     """
     kernel = np.outer(np.array([1, 2, 1]), np.array([-1, 0, 1]))
     return kernel if direction == 'x' else kernel.T
+
+
+def load_tracking_data(datadirpath, files=True):
+    images_files = sorted(glob(os.path.join(os.path.join(datadirpath, "img", "*.jpg"))))
+    gt_rect_file = os.path.join(datadirpath, "groundtruth_rect.txt")
+    with open(gt_rect_file, "r") as f:
+        text = f.read()
+        try:
+            gt_rects = [np.array([int(num) for num in s.split(",")]) for s in text.split("\n") if s != '']
+        except:
+            gt_rects = [np.array([int(num) for num in s.split("\t")]) for s in text.split("\n") if s != '']
+    if files:
+        return images_files, gt_rects    
+    images = np.stack([imread(imgfile) for imgfile in images_files], 0)
+    return images, gt_rects
+
+
+def draw_rect(frames, rects):
+    """
+    Args:
+        frames -- (H, W[, 3]) image or list of images: [img_1 ... img_n]
+        rects -- bounding box (bbox) or list of bboxes
+                where bbox is [x, y, w, h]
+                      x, y -- top-left coordinates
+                      w, h -- size of bbox
+    """
+    is_list = isinstance(rects, list)
+    if not is_list:
+        frames = [frames]
+        rects = [rects]
+    frames_with_rects = deepcopy(frames)
+    for frame, rect in zip(frames_with_rects, rects):
+        x1, y1, w, h = rect
+        x2, y2 = x1 + w, y1 + h
+        cv2.rectangle(frame, (x1, y1), (x2, y2), (255,0,0))
+    return frames_with_rects if is_list else frames_with_rects[0]
+
+def draw_poly(frames, pts):
+    """
+    Args:
+        frames -- (H, W[, 3]) image or list of images: [img_1 ... img_n]
+        pts -- points of polygon (bbox) or list of polygons points
+                where bbox is [x, y, w, h]
+                      x, y -- top-left coordinates
+                      w, h -- size of bbox
+    """
+    is_list = isinstance(pts, list)
+    if not is_list:
+        frames = [frames]
+        pts = [pts]
+    frames_with_poly = deepcopy(frames)
+    for frame, pts_ in zip(frames_with_poly, pts):
+        cv2.polylines(frame, [pts_], True, 255, 2)
+    return frames_with_poly if is_list else frames_with_poly[0]

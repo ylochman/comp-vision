@@ -1,7 +1,7 @@
 import numpy as np
 from matplotlib import pyplot as plt
 import cv2
-from utils import imread, imshow, imsave
+from utils import imread, imshow, imsave, draw_rect
 from utils import normalize, im2col, CC, SSD, SAD
 
 def match_template(image, template, matchers, pad=False, pad_value=0, norm_patches=True):
@@ -47,14 +47,15 @@ def match_template(image, template, matchers, pad=False, pad_value=0, norm_patch
         template_flat = template.flatten()
     matcher_dict = {"SSD": SSD, "CC": CC, "SAD": SAD}
     matching_maps = []
-    if isinstance(matchers, str):
+    is_list = isinstance(matchers, list)
+    if not is_list:
         matchers = [matchers]
     for matcher in matchers:
         assert matcher in matcher_dict.keys()
         matcher_fn = matcher_dict[matcher]
         matching_map = matcher_fn(image_cols, template_flat, -1)
         matching_maps.append(matching_map)
-    return matching_maps
+    return matching_maps if is_list else matching_maps[0]
 
 def locate(image, score_map, w, h, maximum=True, threshold=None):
     """Finds a match given a score map.
@@ -70,14 +71,13 @@ def locate(image, score_map, w, h, maximum=True, threshold=None):
                                y is an array of top-left y coordinates
              matched: image with matched bboxes drawn
     """
-    matched = image.copy()
     if threshold is None:
         _, _, min_loc, max_loc = cv2.minMaxLoc(score_map)
         top_left = max_loc if maximum else min_loc
-        bottom_right = (top_left[0] + w, top_left[1] + h)
-        cv2.rectangle(matched, top_left, bottom_right, (255,0,0), 2)
+        matched = draw_rect(image, (*top_left, w, h))
         loc = tuple([np.array([p]) for p in top_left])
     else:
+        matched = image.copy()
         loc = np.where(score_map >= (threshold * score_map.max()) \
                        if maximum else \
                        score_map <= ((1-threshold) * score_map.max()))
@@ -87,8 +87,8 @@ def locate(image, score_map, w, h, maximum=True, threshold=None):
 
 def main(args):
     """Runs a template matching example"""
-    image = imread('data/{}/image.jpg'.format(args.dirName))
-    template = imread('data/{}/template.jpg'.format(args.dirName))
+    image = imread('data/template-matching/{}/image.jpg'.format(args.dirname))
+    template = imread('data/template-matching/{}/template.jpg'.format(args.dirname))
 
     if args.resize:
         image = cv2.resize(image, (0,0), fx=args.resize_factor, fy=args.resize_factor)
@@ -109,8 +109,8 @@ def main(args):
     score_maps = match_template(image, template, matchers, pad=False, norm_patches=True)
     for score_map, matcher in zip(score_maps, matchers):
         loc, matched = locate(image, score_map, w, h, maximum=(matcher=="CC"), threshold=None)
-        imsave(score_map, path='res/{}/N{}_score_map.jpg'.format(args.dirName, matcher), cmap='gray')
-        imsave(matched, path='res/{}/N{}_matched.jpg'.format(args.dirName, matcher))
+        imsave(score_map, path='res/template-matching/{}/N{}_score_map.jpg'.format(args.dirname, matcher), cmap='gray')
+        imsave(matched, path='res/template-matching/{}/N{}_matched.jpg'.format(args.dirname, matcher))
         if args.show:
             imshow(score_map, title=matchers_names[matcher], sub=(1,2,1))
             imshow(matched, title='Matched', sub=(1,2,2))
@@ -119,7 +119,7 @@ def main(args):
 if __name__=="__main__":
     import argparse
     parser = argparse.ArgumentParser()
-    parser.add_argument("--dirName", type=str, default="messi", help='path to image and template (default: messi)')
+    parser.add_argument("--dirname", type=str, default="messi", help='path to image and template (default: messi)')
     parser.add_argument("--resize", action='store_true', default=False, help='resize (default: False)')
     parser.add_argument("--resize-factor", type=float, default=0.5, help='resize factor (default: 0.5)')
     parser.add_argument("--gray", action='store_true', default=False, help='convert to gray (default: False)')

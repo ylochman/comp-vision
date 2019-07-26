@@ -2,6 +2,8 @@
 
 WIP
 
+See `Image_Retrieval.ipynb`
+
 ## Dataset
 
 U. Kentucky Benchmark Image Database Reference: D. Nistér and H. Stewénius. Scalable recognition with a vocabulary tree. In IEEE Conference on Computer Vision and Pattern Recognition (CVPR), volume 2, pages 2161-2168, June 2006.

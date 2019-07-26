@@ -12,7 +12,7 @@ The original database includes 2,550 objects with 4 images for each object (tota
 
 1. Write a program to extract the color histogram of each of the 2,000 images. Choose the parameters required with justifications. Implement your own histogram code and compare its results with open-source API like OpenCV and numpy.
 
-Required submission: source code with comments
+**Required submission:** source code with comments
 
 2. Write a program to measure the L2 distance between color histograms of two images. Required submission: source code with comments.
 

@@ -1,6 +1,6 @@
 # Kalman Filter
 
-Run `kalman_filter.py` and see the result in `res/mouse-tracking.avi`
+Run `python kalman_filter.py`, interact, see a saved screen video `mouse-tracking.avi` in `res`.
 
 ## Task Description
 Develop a python application that uses Kalman filter for smoothing the output of the mouse pointer. Define process model, transition matrix and system noise. Write code as python application with comments.

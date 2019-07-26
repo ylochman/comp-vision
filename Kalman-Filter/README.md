@@ -4,7 +4,7 @@ Run `python kalman_filter.py`, interact, check the screen video saved as `mouse-
 
 ## Task Description
 
-<img src="./assets/mouse-tracking.gif" height="230" align="right"/>
+<img src="./assets/mouse-tracking.gif" height="200" align="right"/>
 
 Develop a python application that uses Kalman filter for smoothing the output of the mouse pointer. Define process model, transition matrix and system noise. Write code as python application with comments.
 

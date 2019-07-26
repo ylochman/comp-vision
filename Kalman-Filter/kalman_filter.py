@@ -6,23 +6,27 @@ import threading
 # Default values
 SIZE = (512, 512) # window size
 PRED_SCALE = 5 # multiplier for better prediction visualization
-DIM_MEAS_DEF = 2 # 2 coordinates
-DIM_STATE_DEF = 4 # 2 coordinates + 2 velocities
-NOISE_MEAN_DEF = [0] * DIM_MEAS_DEF
-NOISE_COV_DEF = [100] * DIM_MEAS_DEF
+DIM_MEAS_DEF = 2 # 2 coordinates (x,y)
+DIM_STATE_DEF = 4 # 2 coordinates (x,y) + 2 velocities (vx, vy)
+NOISE_MEAN_DEF = [0] * DIM_MEAS_DEF # mean vector for the noise
+NOISE_COV_DEF = [100] * DIM_MEAS_DEF # variance vector for the noise
+# State transition matrix
 F_DEF = np.array([
             [1, 0, 0.2, 0],
             [0, 1, 0, 0.2],
             [0, 0, 1, 0],
             [0, 0, 0, 1]
             ])
+# Sensor function
 H_DEF = np.array([
             [1, 0, 1, 0],
             [0, 1, 0, 1],
             [0, 0, 0, 0],
             [0, 0, 0, 0]
             ])
+# Sensor noise covariance matrix
 Q_DEF = 0.1 * np.eye(DIM_STATE_DEF)
+# Action uncertainty
 R_DEF = np.array([
             [0, 0, 0, 0],
             [0, 0, 0, 0],
@@ -42,46 +46,39 @@ class KalmanFilter(object):
         H -- sensor function
         Q -- sensor noise, covariance matrix
         R -- action uncertainty
-        noise_model -- (mean_vector, variance_vector or covariance_matrix),
-                       parameters of multivariate normal random variable
     """
-    def __init__(self, dim=DIM_STATE_DEF, F=F_DEF, H=H_DEF, Q=Q_DEF, R=R_DEF,
-                 noise_model=(NOISE_MEAN_DEF, NOISE_COV_DEF)):
+    def __init__(self, dim=DIM_STATE_DEF, F=F_DEF, H=H_DEF, Q=Q_DEF, R=R_DEF):
         self.dim = dim
         
-        # Real position (ground-truth) vector
+        # Real (ground-truth) vector (this is unknow in the wild therefore optional)
         self.gt = [] # for accumulation
-        self.x_gt = np.zeros(self.dim, dtype='int') # initial
+        self.x_gt = np.zeros(self.dim, dtype='int') # current
         
-        # Noisy position measurement (input) vector
+        # Noisy measurement (input) vector
         self.inp = [] # for accumulation
-        self.x_inp = np.zeros(self.dim, dtype='int') # initial
+        self.x_inp = np.zeros(self.dim, dtype='int') # current
 
-        # Kalman filter (prediction) state mean vector -- x_pred, and covariance -- P
+        # Kalman filter (prediction) state: mean vector x_pred, and covariance P
         self.pred = [] # for accumulation
-        self.x_pred = np.zeros(self.dim) # initial vector
-        self.P = np.zeros((self.dim, self.dim)) # initial covariance
+        self.x_pred = np.zeros(self.dim) # current vector
+        self.P = np.zeros((self.dim, self.dim)) # current covariance (not accumulated)
         
         # System Matrices
         self.F = F # state transition matrix
         self.H = H # "sensor" function
         self.Q = Q # "sensor" noise, covariance matrix
         self.R = R # action uncertainty
-        
-        # Noise model
-        self.noise_rv = scipy.stats.multivariate_normal(*noise_model)
 
-    def getdata(self, coords_gt):
-        # Get ground truth
-        v_gt = coords_gt - self.x_gt[:2]
-        self.x_gt = np.concatenate((coords_gt, v_gt))
-        self.gt.append(self.x_gt)
-
-        # Synthesize measurement (add noise)
-        coords_inp = self.x_gt[:2] + self.noise_rv.rvs()
+    def getdata(self, coords_inp, coords_gt):
+        # Get input data
         v_inp = coords_inp - self.x_pred[:2]
         self.x_inp = np.concatenate((coords_inp, v_inp))
         self.inp.append(self.x_inp)
+
+        # Get ground truth data
+        v_gt = coords_gt - self.x_gt[:2]
+        self.x_gt = np.concatenate((coords_gt, v_gt))
+        self.gt.append(self.x_gt)
 
     def iteration(self):
         # Prediction
@@ -95,31 +92,42 @@ class KalmanFilter(object):
         self.pred.append(self.x_pred)
 
 class MouseTracker(object):
-    """
+    """Implementation of the mouse tracking system that interacts with user,
+    synthesizes noisy measurements of the mouse position
+    and aplies Kalman filter for smoothing.
+
     Args:
         canvsize -- (h, w) tuple, window sizes
         winname -- str, window title
-        show_prediction -- bool, show Kalman prediction vector 
+        noise_model -- (mean_vector, variance_vector or covariance_matrix),
+                       parameters of multivariate normal random variable
         fps -- int, frequency rate
+        show_prediction -- bool, show Kalman prediction vector 
     """
     def __init__(self, canvsize=SIZE,
                  winname="Kalman Filter for Mouse Traking",
-                 show_prediction=True, fps=60):
+                 noise_model=(NOISE_MEAN_DEF, NOISE_COV_DEF),
+                 fps=60, show_prediction=True):
         self.fps = fps
         self.winname = winname
         self.canvsize = canvsize
         self.show_prediction = show_prediction
         self.KF = KalmanFilter()
-        self.current_coords = np.zeros(2, dtype='int') 
+        self.coords_gt = np.zeros(2, dtype='int') 
         self.bg = np.zeros((*self.canvsize, 3), np.uint8) # black background
         self.canvas = self.bg.copy()
         if self.show_prediction:
             self.canvas_pred = self.bg.copy()
         self.frames = []
+        # Noise model
+        self.noise_rv = scipy.stats.multivariate_normal(*noise_model)
 
     def frame(self):
+        # Synthesize measurement (add noise)
+        coords_inp = self.coords_gt + self.noise_rv.rvs()
+
         # Run Kalman Filter
-        self.KF.getdata(self.current_coords)
+        self.KF.getdata(coords_inp, self.coords_gt)
         self.KF.iteration()
 
         # Draw data
@@ -152,7 +160,7 @@ class MouseTracker(object):
 
         def _mouseMoved(event, x, y, flags, param):
             if event in (cv2.EVENT_MOUSEMOVE, cv2.EVENT_MBUTTONDOWN):
-                self.current_coords = np.array([x, y], dtype='int')
+                self.coords_gt = np.array([x, y], dtype='int')
 
         cv2.setMouseCallback(self.winname, _mouseMoved, None)
         self.frame()

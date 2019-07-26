@@ -1,20 +1,27 @@
 # Computer Vision
 
-## Feature Detection and Description (Module 1)
+## Module 1. Feature Detection and Description
 
-See `Feature-Detection` directory.
+See [Feature-Detection](./Feature-Detection)
 
-## Image Segmentation and Correspondence Problems (Module 2)
+## Module 2. Image Segmentation and Correspondence Problems
 
-See: 
+* [Segmentation](./Segmentation)
+* [Correspondence](./Correspondence)
 
-* `Segmentation`
-* `Correspondence`
+## Module 3. Object Tracking and Search
 
-## Object Tracking and Search (Module 3)
+* [Image-Retrieval](./Image-Retrieval)
+* [Kalman-Filter](./Kalman-Filter)
+* [Tracking](./Tracking)
 
-See: 
+## Module 4. Geometry and Augmented Reality (AR)
 
-* `Image-Retrieval`
-* `Kalman-Filter`
-* `Tracking`
+* [Geometry-Ellipse](./Geometry-Ellipse)
+* [Camera-Calibration](./Camera-Calibration)
+* [Multiple-View-Geometry](./Multiple-View-Geometry)
+
+## Module 5. Deep Learning for CV
+
+* [CNN-Paper-Review](./CNN-Paper-Review)
+* [CNN-cifar10](./CNN-cifar10)

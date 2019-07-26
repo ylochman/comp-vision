@@ -1,3 +1,3 @@
-# Content-Based Image Retrieval (Computer Vision Module 3)
+# Content-Based Image Retrieval
 
 WIP

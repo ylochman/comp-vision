@@ -1,103 +1,193 @@
 import cv2
 import numpy as np
 import scipy.stats
+import threading
 
-# Set default values
-DIM_DEF = 4
+# Default values
+SIZE = (512, 512) # window size
+PRED_SCALE = 5 # multiplier for better prediction visualization
+DIM_MEAS_DEF = 2 # 2 coordinates
+DIM_STATE_DEF = 4 # 2 coordinates + 2 velocities
+NOISE_MEAN_DEF = [0] * DIM_MEAS_DEF
+NOISE_COV_DEF = [100] * DIM_MEAS_DEF
 F_DEF = np.array([
             [1, 0, 0.2, 0],
             [0, 1, 0, 0.2],
             [0, 0, 1, 0],
             [0, 0, 0, 1]
             ])
-H_DEF = np.eye(DIM_DEF)
-Q_DEF = np.array([
-            [0.001, 0, 0, 0],
-            [0, 0.001, 0, 0],
+H_DEF = np.array([
+            [1, 0, 1, 0],
+            [0, 1, 0, 1],
             [0, 0, 0, 0],
             [0, 0, 0, 0]
             ])
-R_DEF = 0.1 * np.eye(DIM_DEF)
-NOISE_MEAN_DEF = [0] * DIM_DEF
-NOISE_COV_DEF = [1] * DIM_DEF
+Q_DEF = 0.1 * np.eye(DIM_STATE_DEF)
+R_DEF = np.array([
+            [0, 0, 0, 0],
+            [0, 0, 0, 0],
+            [0, 0, 0.005, 0],
+            [0, 0, 0, 0.005]
+            ])
 
-class TrackingSystem():
-    """A system in 2D with 4D state vector changing in time.
-    The state vector is [x, y, vx, vy], where (x, y) are coordinates, (vx, vy) are velocities in 2D
+class KalmanFilter(object):
+    """Implementation of Kalman filter that operates in a 2D system with a 4D state vector.
+    The state vector is by default [x, y, vx, vy],
+    where (x, y) are coordinates and (vx, vy) are velocities in 2D.
+    For another state vector a function `getdata()` should be rewritten.
     
     Args:
-        dim -- (default: 4)
-        F -- (default: 4)
-        H -- (default: I_4)
-        R -- (default: 0.1 * I_4)
-        noise_model -- (mean_vector, variance_vector / covariance_matrix)
+        dim -- state vector dimensionality
+        F -- state transition matrix
+        H -- sensor function
+        Q -- sensor noise, covariance matrix
+        R -- action uncertainty
+        noise_model -- (mean_vector, variance_vector or covariance_matrix),
                        parameters of multivariate normal random variable
-                       default: ([0,0,0,0], [1,1,1,1])
     """
-    def __init__(self, dim=DIM_DEF, F=F_DEF, H=H_DEF, Q=Q_DEF, R=R_DEF,
+    def __init__(self, dim=DIM_STATE_DEF, F=F_DEF, H=H_DEF, Q=Q_DEF, R=R_DEF,
                  noise_model=(NOISE_MEAN_DEF, NOISE_COV_DEF)):
         self.dim = dim
-        self.fps = 60
-        self.pixel_size = 1
-        # Real position (ground-truth, gt) vector
-        self.gt = [] # all
-        self.x_gt = np.zeros(self.dim) # last
-        # Noisy position measurement (input, inp) vector
-        self.inp = [] # all
-        self.x_inp = np.zeros(self.dim) # last
-        # Kalman filter (prediction, pred) state vector
-        self.pred = [] # all
-        self.x_pred = np.zeros(self.dim) # last
-        # Matrices
-        self.F = F
-        self.H = H
-        self.Q = Q
-        self.R = R
-        self.P = np.zeros((self.dim, self.dim))
+        
+        # Real position (ground-truth) vector
+        self.gt = [] # for accumulation
+        self.x_gt = np.zeros(self.dim, dtype='int') # initial
+        
+        # Noisy position measurement (input) vector
+        self.inp = [] # for accumulation
+        self.x_inp = np.zeros(self.dim, dtype='int') # initial
+
+        # Kalman filter (prediction) state mean vector -- x_pred, and covariance -- P
+        self.pred = [] # for accumulation
+        self.x_pred = np.zeros(self.dim) # initial vector
+        self.P = np.zeros((self.dim, self.dim)) # initial covariance
+        
+        # System Matrices
+        self.F = F # state transition matrix
+        self.H = H # "sensor" function
+        self.Q = Q # "sensor" noise, covariance matrix
+        self.R = R # action uncertainty
+        
         # Noise model
         self.noise_rv = scipy.stats.multivariate_normal(*noise_model)
-        print(self.noise_rv.rvs().shape)
 
-    def run(self):
-        while True:
-            self.get_ground_truth()
-            self.synthesize_measurement()
-            self.KF_iteration()
-            # self.x_inp = m[:2]
-            break
-
-    def get_ground_truth(self):
-        coords_gt = np.zeros(2)
+    def getdata(self, coords_gt):
+        # Get ground truth
         v_gt = coords_gt - self.x_gt[:2]
-        self.x_gt = np.concatenate(coords_gt, v_gt)
+        self.x_gt = np.concatenate((coords_gt, v_gt))
+        self.gt.append(self.x_gt)
 
-    def synthesize_measurement(self):
+        # Synthesize measurement (add noise)
         coords_inp = self.x_gt[:2] + self.noise_rv.rvs()
         v_inp = coords_inp - self.x_pred[:2]
-        self.x_inp = np.concatenate(coords_inp, v_inp)
-
-    def KF_iteration(self):
-        self.gt.append(self.x_gt)
+        self.x_inp = np.concatenate((coords_inp, v_inp))
         self.inp.append(self.x_inp)
 
+    def iteration(self):
         # Prediction
         x_hat = self.F @ self.x_pred
         P_hat = self.F @ self.P @ self.F.T + self.R
 
         # Correction
         K = P_hat @ self.H.T @ np.linalg.inv(self.H @ P_hat @ self.H.T + self.Q)
-        self.x_pred = x_hat + K @ (self.z - self.H @ x_hat)
+        self.x_pred = x_hat + K @ (self.x_inp - self.H @ x_hat)
         self.P = (np.eye(self.dim) - K @ self.H) @ P_hat
-
         self.pred.append(self.x_pred)
 
+class MouseTracker(object):
+    """
+    Args:
+        canvsize -- (h, w) tuple, window sizes
+        winname -- str, window title
+        show_prediction -- bool, show Kalman prediction vector 
+        fps -- int, frequency rate
+    """
+    def __init__(self, canvsize=SIZE,
+                 winname="Kalman Filter for Mouse Traking",
+                 show_prediction=True, fps=60):
+        self.fps = fps
+        self.winname = winname
+        self.canvsize = canvsize
+        self.show_prediction = show_prediction
+        self.KF = KalmanFilter()
+        self.current_coords = np.zeros(2, dtype='int') 
+        self.bg = np.zeros((*self.canvsize, 3), np.uint8) # black background
+        self.canvas = self.bg.copy()
+        if self.show_prediction:
+            self.canvas_pred = self.bg.copy()
+        self.frames = []
+
+    def frame(self):
+        # Run Kalman Filter
+        self.KF.getdata(self.current_coords)
+        self.KF.iteration()
+
+        # Draw data
+        # Ground-truth
+        x_prev = self.KF.gt[-1] if len(self.KF.gt) == 1 else self.KF.gt[-2]
+        cv2.line(self.canvas, tuple(x_prev[:2]), tuple(self.KF.gt[-1][:2]), color=(47,43,37), thickness=1)
+
+        # Input
+        cv2.circle(self.canvas, tuple(self.KF.inp[-1].astype(int)[:2]), 2, (190,173,149), -1)
+        
+        # Output
+        x_prev = self.KF.pred[-1] if len(self.KF.pred) == 1 else self.KF.pred[-2]
+        cv2.line(self.canvas, tuple(x_prev.astype(int)[:2]), tuple(self.KF.pred[-1].astype(int)[:2]),
+                 color=(111,130,243), thickness=2)
+        
+        # Prediction
+        if self.show_prediction:
+            self.canvas_pred = self.canvas.copy()
+            x1 = self.KF.pred[-1].astype(int)[:2]
+            x2 = x1 + self.KF.pred[-1].astype(int)[2:] * PRED_SCALE
+            cv2.line(self.canvas_pred, tuple(x1), tuple(x2), color=(231,150,243), thickness=2)
+        
+        self.th = threading.Timer(1/self.fps, self.frame)
+        self.th.start() 
+
+    def run(self):
+        print("Started tracking")
+        cv2.namedWindow(self.winname)
+        cv2.moveWindow(self.winname, 0, 0) 
+
+        def _mouseMoved(event, x, y, flags, param):
+            if event in (cv2.EVENT_MOUSEMOVE, cv2.EVENT_MBUTTONDOWN):
+                self.current_coords = np.array([x, y], dtype='int')
+
+        cv2.setMouseCallback(self.winname, _mouseMoved, None)
+        self.frame()
+        while True:
+            final = self.canvas if not self.show_prediction else self.canvas_pred
+            cv2.imshow(self.winname, final)
+            self.frames.append(final)
+            if cv2.waitKey(1) & 0xFF == ord("c"):
+                self.canvas = self.bg.copy()
+                cv2.imshow(self.winname, self.canvas)
+            if cv2.waitKey(1) & 0xFF == ord("q"):
+                break
+        self.quit()
+
+    def quit(self):
+        self.th.cancel()
+        cv2.destroyAllWindows()
+        print("Ended tracking")
+
+def save_video(filepath, frames, framesize=None, fps=40):
+    if framesize is None:
+        framesize = frames[0].shape[1::-1]
+    writer = cv2.VideoWriter(filepath, cv2.VideoWriter_fourcc(*"MJPG"), fps, framesize)
+    for frame in frames:
+        writer.write(frame)
+    writer.release()
 
 if __name__ == "__main__":
     import argparse
     parser = argparse.ArgumentParser()
-    # parser.add_argument("--dirname", type=str, default="Jump", help="path to image and template (default: Jump)")
-    # parser.add_argument("--adaptive", action='store_true', default=False, help="CAMShift")
+    parser.add_argument('-s', '--save-path', type=str, default="res/mouse-tracking.avi", help='video file saving path')
     args = parser.parse_args()
+    
+    mouse_tracker = MouseTracker()
+    mouse_tracker.run()
+    save_video(args.save_path, mouse_tracker.frames)
 
-    tracking_system = TrackingSystem()
-    # tracking_system.run()
+    cv2.destroyAllWindows()

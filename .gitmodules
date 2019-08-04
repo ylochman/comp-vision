@@ -4,3 +4,6 @@
 [submodule "ComputerVisionCourse"]
 	path = Segmentation/materials-module2
 	url = https://github.com/mdavydov/ComputerVisionCourse.git
+[submodule "CNN-cifar10/materials-module5"]
+	path = CNN-cifar10/materials-module5
+	url = https://github.com/lyubonko/ucu2019

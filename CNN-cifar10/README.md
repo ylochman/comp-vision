@@ -3,7 +3,7 @@ WIP
 
 ## Task Description
 
-Зробити серiю експериментiв на базi ноутбука [a3_cifar10.ipynb](./materials-module5/assignments/a3_cifar10.ipynb)
+Зробити серiю експериментiв на базi ноутбука [a3_cifar10.ipynb](https://github.com/lyubonko/ucu2019/blob/master/assignments/a3_cifar10.ipynb)
 
 **Вимоги**:
 

@@ -1,3 +1,5 @@
+> **[Report for the Module 5](./assets/dlcv2019_Yaroslava_Lochman_report.pdf)**
+
 # Deep Learning for CV. CIFAR-10
 
 - For CIFAR-10 classification problem I trained a CNN with GeForce GTX 1080.

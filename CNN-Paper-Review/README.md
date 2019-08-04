@@ -1,5 +1,7 @@
 # Paper Review:  D2-Net
 
+<img src="./assets/res_img.png" width="250" align="right"/>
+
 * **Title**: D2-Net: A Trainable CNN for Joint Description and Detection of Local Features
 * **Authors**: Mihai Dusmanu, Ignacio Rocco, Tomas Pajdla, Marc Pollefeys, Josef Sivic, Akihiko Torii, Torsten Sattler
 * **[Link](http://openaccess.thecvf.com/content_CVPR_2019/papers/Dusmanu_D2-Net_A_Trainable_CNN_for_Joint_Description_and_Detection_of_CVPR_2019_paper.pdf)**

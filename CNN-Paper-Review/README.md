@@ -9,21 +9,22 @@
 # Summary
 
 * **What:**
-The authors propose a CNN architecture for simultaneous dense feature description and detection in order to find reliable pixel-level correspondences under difficult imaging conditions. 
-  ![Summary](assets/summary.png?raw=true "D2Net")
+
+  * The authors proposed a CNN architecture for simultaneous dense feature description and detection in order to find reliable pixel-level correspondences under difficult imaging conditions. 
+  * D2-Net obtains state-of-the-art performance on **Aachen Day-Night** (outdoor) and **InLoc** (indoor) localization datasets.
+  * The method can be integrated into image matching and 3D reconstruction pipelines.
 
 * **How:**
-  * It's a "single-shot" pipeline.
-   <!-- * `Spatial Transformer` allows the spatial manipulation of the data (any feature map or particularly input image). This differentiable module can be inserted into any CNN, giving neural networks the ability to actively spatially transform feature maps, conditional on the feature map itself.
-   * The action of the spatial transformer is conditioned on individual data samples, with the appropriate behavior learned during training for the task in question.
-   * No additional supervision or modification of the optimization process is required.
-   * Spatial manipulation consists of cropping, translation, rotation, scale, and skew.
-   ![Example](images/STN/stn_example2.png?raw=true "Example") ![Example2](images/STN/stn_example.png?raw=true "Example2")
-   * STN structure:
-        1. `Localization net`: predicts parameters of the transform `theta`. For 2d case, it's 2 x 3 matrix. For 3d case, it's 3 x 4 matrix.
-        2. `Grid generator`: Uses predictions of `Localization net` to create a sampling grid, which is a set of points where the input map should be sampled to produce the transformed output.
-        3. `Sampler`: Produces the output map sampled from the input feature map at the predicted grid points. -->
-              
+  * It's a "single-shot" detect-and-describe (D2) approach. A VGG-16 (up to the `conv4_3` layer) backbone is fine-tuned for extracting feature maps:
+
+  ![Summary](assets/summary.png?raw=true "D2Net")
+
+  * Local descriptors (d_ij) are obtained by traversing n feature maps (l2-normalized across channels) at a spatial position (i,j)
+  * Detections (scores -- s_ij) are obtained by performing a soft versions of non-local-maximum suppression on a feature map (soft local-maximum score α) + non-maximum suppression across each descriptor (ratio-to-maximum score per descriptor β).
+  * Also, during the inference authors propose to create image pyramids for 3 scales: 0.5, 1, 2; then pass through the network and sum the feature maps (using bilinear interpolation for larger iamges and masking already detected regions to prevent re-detection) 
+  * The objective corresponds to the 
+  repeatability of the detector and the distinctiveness of the descriptor. It is an extended triplet margin ranking loss.
+
 * **Results:**
 
   * **HPatches**
@@ -38,13 +39,6 @@ The authors propose a CNN architecture for simultaneous dense feature descriptio
   
 ![InLoc Dataset Results](assets/res_inloc.png?raw=true   "InLoc Dataset Results")
 
-    <!-- 
-    * **Distored MNIST**:
-      ![Distorted MNIST Results](images/STN/stn_distored_mnist_results.png?raw=true "Distorted MNIST")
-    * **CUB-200-2011 birds dataset**:
-      ![Birds Classification Results](images/STN/stn_birds_results.png?raw=true "Birds Classification Results")
-    * **MNIST addition**:
-      ![MNIST addition Results](images/STN/stn_mnist_addition_results.png?raw=true "MNIST addition Results")   -->
 
 # CNN Visualization: D2-Net
 ## Architecture

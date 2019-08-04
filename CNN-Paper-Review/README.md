@@ -26,12 +26,19 @@ The authors propose a CNN architecture for simultaneous dense feature descriptio
               
 * **Results:**
 
+  * **HPatches**
+
+![HPatches Results](assets/res_hpatches.png?raw=true   "HPatches Results")
+
   * **Aachen Day-Night localization dataset**
+
+![Aachen Dataset Results](assets/res_aachen.png?raw=true   "Aachen Dataset Results")
 
   * **InLoc indoor localization dataset**
   
-    <!-- * **Street View House Numbers multi-digit recognition**:
-      ![SVHN Results](images/STN/stn_svhn_results.png?raw=true   "SVHN Results")
+![InLoc Dataset Results](assets/res_inloc.png?raw=true   "InLoc Dataset Results")
+
+    <!-- 
     * **Distored MNIST**:
       ![Distorted MNIST Results](images/STN/stn_distored_mnist_results.png?raw=true "Distorted MNIST")
     * **CUB-200-2011 birds dataset**:

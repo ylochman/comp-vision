@@ -4,7 +4,21 @@
 - I slightly modified `cifar10.ipynb` to get insights.
 - I put all essentials in `net.py`, `utils.py`, `train.py`.
 - **The experimental pipeline is in [`Experiments.ipynb`](./Experiments.ipynb)**
-- I compared the training time with CPU / GPU. See below the results:
+- The top-3-performance models are following:
+
+![Top-3 Configs](assets/top-3_configs.png?raw=true "Top-3 Configs")
+
+![Top-3 TB](assets/top-3_tb.png?raw=true "Top-3 TB")
+
+- The best model gained 76.88% test accuracy. It was trained with Stochastic Gradient Descent (batch size 64, learning rate 0.016, with Nesterov momentum; 5-step learning rate decay by 0.1; cross-entropy objective and regularization on weights with 0.01 multiplier) for 10 epochs, then continued up to 15 epochs and stopped on 13th epoch due to Plateau. The architecture is:
+    * 16 conv3x3 - relu - bn - maxpool2x2 ->
+    * 32 conv3x3 - relu - bn - maxpool2x2 ->
+    * 32 conv3x3 - relu - bn ->
+    * 128 fc - relu ->
+    * 64 fc - relu ->
+    * 10 fc
+- For the details see [`Experiments.ipynb`](./Experiments.ipynb)
+- I also compared the training time with CPU / GPU. See below the results:
 1. **GPU (2 min)**
 ```bash
 time python train.py
@@ -24,7 +38,7 @@ real    3m12.462s
 user    22m2.023s
 sys     0m14.506s
 ```
-The configurations fot this experiment are:
+The configurations fot this experiment were:
 
 ![GPU/CPU Configs](assets/gpu_cpu_configs.png?raw=true "GPU/CPU Configs")
 

@@ -52,7 +52,8 @@ def log_in_json(net, criterion, batch_size, optimizer, scheduler,
 
 
 def get_summary_df(logpath='./logs/tensorboard'):
-    for i, timestamp in enumerate(sorted(os.listdir(logpath))):
+    i = 0
+    for timestamp in sorted(os.listdir(logpath)):
         jsonfile = '{}/{}/configs.json'.format(logpath, timestamp)
         try:
             with open(jsonfile, 'r') as f:
@@ -63,6 +64,7 @@ def get_summary_df(logpath='./logs/tensorboard'):
                 df = series
             else:
                 df = pd.concat([df, series], axis=1, sort=False)
+            i += 1
         except FileNotFoundError:
             print('No {} found'.format(jsonfile))
     df = df.T.set_index('timestamp')

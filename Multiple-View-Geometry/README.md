@@ -1,5 +1,8 @@
 # Multiple View Geometry
-WIP
+
+Implementation is in [mvg.py](./mvg.py).
+
+See the results for UCU buildings in [MVG](./MVG.ipynb) notebook.
 
 ## Task Description
 

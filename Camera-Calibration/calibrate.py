@@ -64,7 +64,8 @@ class Calibrator(object):
 
     def _calibrate(self):
         ret, mtx, dist, rvecs, tvecs = cv2.calibrateCamera(self.all_world_points,
-                                        self.all_img_points, self.imgsize[::-1], None, None)
+                                        self.all_img_points, self.imgsize[::-1], None, None,
+                                        flags=cv2.CALIB_FIX_K3)
         self.camera_matrix = np.array(mtx)
         self.dist_coeff = np.array(dist)
         self.rvecs = np.array(rvecs)

@@ -26,9 +26,6 @@ def assert_ellipse(E):
     
     Args:
         E ([3,3] np.ndarray): ellipse matrix
-    
-    Returns:
-        [3,3] np.ndarray: normalized (A==1) ellipse matrix
     """
     A = E[0,0]
     B = E[1,1]
@@ -60,3 +57,13 @@ def draw_pts(imgc, pts):
     for pt in pts:
         cv2.circle(img, (int(pt[0]), int(pt[1])), 4, (0,255,0), -1)
     return img
+
+def get_ellipse_pts(E):
+    U, S, VT = np.linalg.svd(E)
+    HinvT = np.matmul(U, np.diag(np.sqrt(S)))
+    H = np.linalg.inv(HinvT.T)
+    a = np.zeros((360, 3))
+    for i, alpha in enumerate(range(0, 360)):
+        a[i] = np.matmul(H, [[np.sin(np.pi * alpha/180)], [np.cos(np.pi * alpha/180)], [1]]).squeeze()
+    a /= (a[:,2,None] + 1e-15)
+    return a[:,:2]

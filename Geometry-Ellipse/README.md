@@ -1,6 +1,6 @@
 # Geometry of Ellipse
 
-Implementation is [ellipse.py](./ellipse.py).
+Implementation is in [ellipse.py](./ellipse.py).
 
 See the results and plots of experiments in [Ellipse](./Ellipse.ipynb) notebook.
 

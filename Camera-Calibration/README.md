@@ -1,6 +1,9 @@
 # Camera Calibration
-WIP
+
+I implementated class `Calibrator` (see [calibrate.py](./calibrate.py))
+and used it for iPhone 6 camera calibration (see [Calibrate](./Calibrate.ipynb) notebook).
 
 ## Task Description
 
-Виконати калібрування камери власного смартфона. Виправити дисторсії на фото.
+Calibrate camera of the smartphone.
+Undistort images taken with this camera.

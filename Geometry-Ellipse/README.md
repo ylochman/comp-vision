@@ -1,6 +1,11 @@
 # Geometry of Ellipse
+
 WIP
+
+Implementation is [ellipse.py](./ellipse.py).
+
+See the results and graphs in [Ellipse](./Ellipse.ipynb) notebook.
 
 ## Task Description
 
-Запрограмувати алгоритм пошуку еліпса  по 6+ точках. Побудувати графік, як залежить максимальне відхилення знайденого еліпса від очікуваного від нормально розподіленої похибки у заданих точках.
+Code an algorithm of finding ellipse from 6+ points. Show in graphs how the maximum deviation of output ellipse from expected ellipse depends on the standard deviation of the normally distributed errors of given points.
